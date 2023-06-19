@@ -10,14 +10,14 @@ class Name(Field):
     pass
 
 class Phone(Field):
-    def __init__(self, phone):
-        self.phone = phone if phone else []
+    pass # добавіл pass
 
 class Record(Field):
     def __init__(self, name, phone):
         self.name = name.value
-        # if phone.phone:
-        self.phones = phone.phone
+        if phone:
+            self.phones = []
+            self.phones.append(phone)
 
 class AddressBook(UserDict, Field):
     def add_record(self, rec):
@@ -32,7 +32,7 @@ def input_error(func):
         try:
             return func(*args)
         except (KeyError, ValueError, IndexError):
-            print('\nCommand was entered incorrectly, please try again.\n') 
+            print('\nCommand was entered incorrectly, please try again.\n')
     return inner
 
 greeting = compile('hello', flags=IGNORECASE)
@@ -76,25 +76,25 @@ def changing(command):
 def show_phone(command):
     arguments = command.split(' ')
     arg_1 = arguments[1]
-    name = Field(arg_1)
-    record = Record(name)
-    for k in numbers.keys():
-        if k == arg_1:
-            print(f'\n{record.name.value}: {", ".join(numbers.get(record.name.value))}\n')
+    for name, phones in numbers.data.items():
+        for phone in phones:
+            if name == arg_1:
+                print(f'{name}: {", ".join(phone.value)}')
 
 @input_error
 def deleting(command):
     arguments = command.split(' ')
     arg_1 = arguments[1]
-    name = Field(arg_1)
-    record = Record(name)
-    numbers.pop(record.name.value)
+    for name in numbers.data.keys():
+        if name == arg_1:
+            numbers.data.pop(arg_1)
     print('\nCompleted!\n')
 
 @input_error
-def show_all_phones():
-    for k, v in numbers.items():
-        print(f'{k}: {", ".join(v)}')
+def show_all_phones(): # тут исправил
+    for name, phones in numbers.data.items():
+        for phone in phones:
+            print(f'{name}: {", ".join(phone.value)}')
 
 if __name__=='__main__':
     while True:
@@ -115,3 +115,17 @@ if __name__=='__main__':
         elif match(goodbye, user_command):
             print('Good bye!')
             break
+
+# if __name__ == "__main__":
+#     name = Name('Bill')
+#     phone = Phone('1234567890')
+#     rec = Record(name, phone)
+#     ab = AddressBook()
+#     ab.add_record(rec)
+#     print(ab)
+#     assert isinstance(ab['Bill'], Record)
+#     assert isinstance(ab['Bill'].name, Name)
+#     assert isinstance(ab['Bill'].phones, list)
+#     assert isinstance(ab['Bill'].phones[0], Phone)
+#     assert ab['Bill'].phones[0].value == '1234567890'
+#     print('All Ok')
