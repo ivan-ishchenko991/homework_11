@@ -3,6 +3,8 @@ from re import compile, match, IGNORECASE
 from collections import UserDict
 import  re
 from datetime import datetime
+import json
+from pathlib import Path
 
 
 class IncorrectInput(Exception):
@@ -114,11 +116,24 @@ class Record:
             return result.days
 
 class AddressBook(UserDict):
+    dir_path = Path(__file__).parent
+    filename = Path(fr'{dir_path}\addressbook.json')
+    def unpackaging(self):
+        with open(self.filename, 'r') as f:
+            self.data.update(json.load(f))
+    
+    def packaging(self):
+        with open(self.filename, 'w') as f:
+            json.dump(self.data, f, indent=4)
 
     def add_record(self, rec: Record):
         self.data[rec.name.value] = rec.lst
 
-    def iterator(self, n):
+    def iterator(self, seq, n):
+        if type(seq) == dict:
+            self.dict_lst = list(self.data.items())
+        else:
+            self.dict_lst = seq
         if n:
             n = n.group()
             self.count_loop = int(n)
@@ -132,17 +147,29 @@ class AddressBook(UserDict):
         return self
     
     def __next__(self):
-        dict_lst = list(self.data.items())
-        if self.index == len(dict_lst):
+        # dict_lst = list(self.data.items())
+        if self.index == len(self.dict_lst):
             raise StopIteration
         else:
-            line = f"{dict_lst[self.index][0]}: {', '.join(dict_lst[self.index][1])}"
+            line = f"{self.dict_lst[self.index][0]}: {', '.join(self.dict_lst[self.index][1])}"
             self.index += 1
             self.loop += 1
             if self.loop == self.count_loop:
                 print('-' * 20)
                 self.loop = 0
             return line
+    
+    def searching(self, obj):
+        result = []
+        for k, v in self.data.items():
+            if obj in k:
+                result.append((k, v))
+                continue
+            for el in v:
+                if obj in el:
+                    result.append((k, v))
+        return result
+
 ab = AddressBook()
 
 def input_error(func):
@@ -161,7 +188,8 @@ phone = compile('phone', flags=IGNORECASE)
 show_all = compile('show all', flags=IGNORECASE)
 delete = compile('delete', flags=IGNORECASE)
 goodbye = compile(r'(good bye|close|exit)', flags=IGNORECASE)
-days_to_bday_command = compile(r'days to birthday', flags=IGNORECASE)
+days_to_bday_command = compile('days to birthday', flags=IGNORECASE)
+search = compile('search', flags=IGNORECASE)
 
 number_pattern = re.compile(r"\+?\(?(\d{2})?\)?\-?\(?(0\d{2})\)?\-?\d{3}\-?\d{2}\-?\d{2}")
 b_day_pattern = r'\d{2}\.\d{2}\.\d{4}'
@@ -236,7 +264,7 @@ def deleting(command):
 @input_error
 def show_all_phones(command):
     n = re.search(r"\d+", command)
-    for line in ab.iterator(n):
+    for line in ab.iterator(ab.data, n):
         print(line)
 
 @input_error
@@ -253,7 +281,18 @@ def days_to_bday(command):
     if bday == None:
         print("Birthday date not found in contact.")
 
+@input_error
+def searching(command):
+    n = re.search(r" \d+$", command)
+    args = command.split(' ')
+    searched_obj = args[1]
+    result = ab.searching(searched_obj)
+    for line in ab.iterator(result, n):
+        print(line)
+
 if __name__=='__main__':
+    if Path(ab.filename).exists():
+        ab.unpackaging()
     while True:
         user_command = input('Write a command: ')
 
@@ -271,6 +310,9 @@ if __name__=='__main__':
             deleting(user_command)
         elif match(days_to_bday_command, user_command):
             days_to_bday(user_command)
+        elif match(search, user_command):
+            searching(user_command)
         elif match(goodbye, user_command):
+            ab.packaging()
             print('Good bye!')
             break
